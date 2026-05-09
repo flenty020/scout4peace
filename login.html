@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scouts4Peace Access Hub</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+background:#020617;
+color:white;
+font-family:Montserrat, sans-serif;
+}
+</style>
+
+</head>
+
+<body class="flex items-center justify-center min-h-screen">
+
+<div class="bg-slate-900 p-12 rounded-3xl w-full max-w-md border border-white/10">
+
+<h1 class="text-3xl font-black mb-8 text-center">
+SCOUTS<span class="text-blue-500">4</span>PEACE
+</h1>
+
+<p id="error" class="text-red-400 text-sm mb-4 hidden">Invalid credentials</p>
+
+<form id="loginForm">
+
+<input 
+id="username"
+type="text"
+placeholder="Scout ID"
+class="w-full mb-4 p-4 rounded-xl bg-slate-950 border border-white/10 outline-none"
+/>
+
+<input 
+id="password"
+type="password"
+placeholder="Password"
+class="w-full mb-6 p-4 rounded-xl bg-slate-950 border border-white/10 outline-none"
+/>
+
+<button
+class="w-full bg-blue-600 py-4 rounded-full font-black uppercase text-xs tracking-widest hover:bg-white hover:text-blue-600 transition-all">
+Enter Hub
+</button>
+
+</form>
+
+</div>
+
+<script>
+
+// Hardcoded scout accounts
+const scouts = [
+{
+id: "scoutleader",
+password: "peace2026",
+role: "leader"
+},
+{
+id: "scout001",
+password: "scout123",
+role: "scout"
+}
+]
+
+// Login function
+document.getElementById("loginForm").addEventListener("submit", function(e){
+
+e.preventDefault()
+
+const username = document.getElementById("username").value
+const password = document.getElementById("password").value
+
+const user = scouts.find(s => s.id === username && s.password === password)
+
+if(user){
+
+// save session
+localStorage.setItem("scoutAuth", "true")
+localStorage.setItem("scoutUser", JSON.stringify(user))
+
+// redirect
+window.location.href = "dashboard.html"
+
+}else{
+
+document.getElementById("error").classList.remove("hidden")
+
+}
+
+})
+
+</script>
+
+</body>
+</html>

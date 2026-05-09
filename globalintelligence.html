@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCOUT4PEACE - Global Intel OS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#050508',
+                        panel: '#0f111a',
+                        accent: '#00ffcc',
+                        warning: '#ff3366',
+                        'accent-glow': 'rgba(0, 255, 204, 0.2)',
+                    },
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'marquee': 'marquee 30s linear infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'radar-spin': 'radar 4s linear infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(100%)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                        radar: {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body {
+            background-color: #050508;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            /* Removed overflow: hidden to allow full page scrolling */
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        /* Global Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050508; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ffcc; }
+
+        .glass-panel {
+            background: rgba(15, 17, 26, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 204, 0.15);
+            border-radius: 0.5rem;
+            position: relative;
+        }
+
+        .cyber-border {
+            border: 1px solid rgba(0, 255, 204, 0.4);
+            box-shadow: inset 0 0 20px rgba(0, 255, 204, 0.05), 0 0 20px rgba(0, 255, 204, 0.15);
+        }
+        
+        /* Scanline Overlay for Elite look */
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 10;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        /* Leaflet Customizations */
+        .leaflet-container { background: #050508; font-family: 'JetBrains Mono', monospace; }
+        .leaflet-popup-content-wrapper { background: rgba(10, 15, 25, 0.95); color: #fff; border: 1px solid #00ffcc; border-radius: 4px; box-shadow: 0 0 15px rgba(0,255,204,0.2); }
+        .leaflet-popup-tip { background: rgba(10, 15, 25, 0.95); border: 1px solid #00ffcc; border-top: none; border-left: none; }
+        
+        /* Restored Symbolic Map Icons */
+        .map-icon-marker {
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; color: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.9); border: 2px solid rgba(255,255,255,0.9);
+            transition: all 0.3s ease;
+            background-color: #111; /* fallback inner dark */
+        }
+        
+        /* Simple Flashing Effect */
+        .pulse-severe { animation: pulseSevere 2s infinite; }
+        @keyframes pulseSevere {
+            0% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.8); }
+            70% { box-shadow: 0 0 0 12px rgba(255, 51, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0); }
+        }
+
+        .nav-btn.active {
+            background-color: #00ffcc; color: #050508; font-weight: bold;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+        }
+        
+        .filter-btn.active { border-color: #00ffcc; color: #00ffcc; background: rgba(0, 255, 204, 0.15); box-shadow: inset 0 0 10px rgba(0,255,204,0.1); }
+
+        .ai-card:hover {
+            transform: translateY(-2px);
+            border-color: #00ffcc;
+            box-shadow: 0 10px 20px -10px rgba(0, 255, 204, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Elite Header -->
+    <header class="h-16 border-b border-gray-800 flex items-center justify-between px-6 bg-panel z-50 shrink-0 sticky top-0 shadow-lg">
+        <div class="flex items-center gap-6">
+            <div class="relative">
+                <i class="fa-solid fa-satellite-dish text-accent text-3xl animate-pulse-fast drop-shadow-[0_0_8px_rgba(0,255,204,0.8)]"></i>
+                <div class="absolute -top-1 -right-2 w-2.5 h-2.5 bg-warning rounded-full animate-ping"></div>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold font-mono tracking-widest leading-none drop-shadow-md"><span class="text-accent">SCOUT</span>4PEACE</h1>
+                <div class="text-[10px] text-gray-400 font-mono tracking-widest uppercase mt-1 flex items-center gap-3">
+                    <span class="border border-gray-600 px-1.5 rounded">OS v6.2.2026</span>
+                    <span class="text-green-400 font-bold bg-green-900/30 px-2 py-0.5 rounded border border-green-800"><i class="fa-solid fa-link mr-1"></i>SYNC: worldmonitor.app</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex gap-4">
+            <button onclick="switchMode('global')" id="btn-mode-global" class="nav-btn active px-6 py-2.5 rounded text-xs font-mono uppercase transition-all flex items-center gap-2 tracking-wider">
+                <i class="fa-solid fa-globe"></i> Global Core
+            </button>
+            <button onclick="switchMode('africa')" id="btn-mode-africa" class="nav-btn px-6 py-2.5 rounded text-xs font-mono uppercase border border-gray-600 transition-all flex items-center gap-2 hover:bg-gray-800 tracking-wider">
+                <i class="fa-solid fa-earth-africa"></i> Africa Sector
+            </button>
+        </div>
+        
+        <div class="text-right border-l border-gray-800 pl-6 hidden md:block">
+            <div class="text-xl font-mono font-bold text-white tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]" id="clock"></div>
+            <div class="text-[10px] font-mono text-accent uppercase flex items-center justify-end gap-2 mt-0.5">
+                <i class="fa-solid fa-circle-dot text-[8px] animate-pulse"></i> LIVE INTEL FEED
+            </div>
+        </div>
+    </header>
+
+    <!-- Breaking News Ticker -->
+    <div class="h-8 bg-[#0a0d14] border-b border-gray-800 flex items-center overflow-hidden relative shrink-0">
+        <div class="bg-warning text-white font-bold font-mono text-xs px-6 py-1 h-full flex items-center z-10 shadow-[8px_0_20px_rgba(0,0,0,0.9)] uppercase tracking-wider">
+            <i class="fa-solid fa-bolt mr-2"></i> Breaking
+        </div>
+        <div class="flex-1 overflow-hidden relative h-full scanlines">
+            <div class="absolute whitespace-nowrap animate-marquee flex items-center h-full text-xs font-mono text-gray-300 tracking-wide" id="news-ticker">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Expansive Layout (Grid/Flex) -->
+    <div class="flex-1 flex flex-col lg:flex-row p-4 gap-4 w-full max-w-[2000px] mx-auto">
+        
+        <!-- Left Sidebar: Conflicts & Telemetry -->
+        <aside class="w-full lg:w-80 flex flex-col gap-4 shrink-0">
+            
+            <!-- System Telemetry Widget (Complex Elite Upgrade) -->
+            <div class="glass-panel border-gray-800 p-3 flex flex-col gap-2 relative overflow-hidden">
+                <div class="scanlines rounded"></div>
+                <h2 class="text-[10px] font-mono text-accent uppercase tracking-widest font-bold border-b border-gray-800 pb-1 flex justify-between">
+                    System Telemetry <i class="fa-solid fa-server"></i>
+                </h2>
+                <div class="grid grid-cols-2 gap-2 mt-1">
+                    <div class="bg-black/50 p-2 rounded border border-gray-800">
+                        <div class="text-[9px] text-gray-500 uppercase font-mono mb-1">Global Threat</div>
+                        <div class="text-lg font-mono font-bold text-warning leading-none">DEFCON 3</div>
+                    </div>
+                    <div class="bg-black/50 p-2 rounded border border-gray-800">
+                        <div class="text-[9px] text-gray-500 uppercase font-mono mb-1">Net Latency</div>
+                        <div class="text-lg font-mono font-bold text-green-400 leading-none">14ms</div>
+                    </div>
+                    <div class="bg-black/50 p-2 rounded border border-gray-800">
+                        <div class="text-[9px] text-gray-500 uppercase font-mono mb-1">Active Nodes</div>
+                        <div class="text-lg font-mono font-bold text-blue-400 leading-none" id="node-count">50</div>
+                    </div>
+                    <div class="bg-black/50 p-2 rounded border border-gray-800">
+                        <div class="text-[9px] text-gray-500 uppercase font-mono mb-1">AI Confidence</div>
+                        <div class="text-lg font-mono font-bold text-purple-400 leading-none">94.8%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conflict Index -->
+            <div class="glass-panel flex flex-col border-gray-800 flex-1 min-h-[400px] lg:max-h-[850px] overflow-hidden">
+                <div class="p-3 border-b border-gray-800 bg-black/60 relative z-10">
+                    <h2 class="text-xs font-mono text-white uppercase tracking-widest mb-2 font-bold flex justify-between">
+                        Conflict Index <i class="fa-solid fa-fire text-warning"></i>
+                    </h2>
+                    <div class="flex justify-between text-[9px] text-gray-400 font-mono font-bold">
+                        <span class="text-warning">CRITICAL (90+)</span>
+                        <span class="text-blue-400">STABLE (0-30)</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-gradient-to-r from-warning via-orange-500 to-blue-500 rounded mt-1.5 opacity-90"></div>
+                </div>
+                <div id="conflict-list" class="flex-1 overflow-y-auto p-2 space-y-1.5 font-mono text-sm">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Main Workspace -->
+        <main class="flex-1 flex flex-col gap-4 min-w-0">
+            
+            <!-- Top Section: Dynamic Media Players (Taller) -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[350px] shrink-0">
+                
+                <!-- Live News Center -->
+                <div class="glass-panel flex flex-col border-gray-800 overflow-hidden relative shadow-lg">
+                    <div class="p-2 border-b border-gray-800 flex justify-between items-center bg-black/80 z-20">
+                        <div class="flex flex-wrap gap-1.5" id="news-selector">
+                            <!-- Filled by JS -->
+                        </div>
+                    </div>
+                    <div class="flex-1 relative bg-black group">
+                        <iframe id="news-frame" class="absolute inset-0 w-full h-full" src="" title="Live News" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <div class="absolute top-3 left-3 bg-warning text-white text-[10px] font-bold px-2.5 py-1 rounded shadow-[0_0_10px_rgba(255,51,102,0.8)] uppercase tracking-wider flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div> LIVE NEWS
+                        </div>
+                        <button onclick="nextNewsMirror()" class="absolute top-3 right-3 bg-gray-900/95 text-accent border border-accent text-xs font-mono px-3 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-all hover:bg-accent hover:text-black shadow-lg">
+                            <i class="fa-solid fa-rotate"></i> Sync Alt Server
+                        </button>
+                        <div id="news-status" class="absolute bottom-3 left-3 text-[10px] font-mono text-accent bg-black/80 border border-accent/30 px-3 py-1 rounded backdrop-blur uppercase tracking-widest shadow-lg">Source: Al Jazeera</div>
+                    </div>
+                </div>
+
+                <!-- Live Webcams & Regional -->
+                <div class="glass-panel flex flex-col border-gray-800 overflow-hidden relative shadow-lg">
+                    <div class="p-2 border-b border-gray-800 flex justify-between items-center bg-black/80 z-20">
+                        <div class="flex flex-wrap gap-1.5" id="cam-selector">
+                             <!-- Filled by JS -->
+                        </div>
+                    </div>
+                    <div class="flex-1 relative bg-black group">
+                        <iframe id="cam-frame" class="absolute inset-0 w-full h-full" src="" title="Live Webcam" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <div class="absolute top-3 left-3 bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded shadow-[0_0_10px_rgba(37,99,235,0.8)] uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-video"></i> LIVE FEED
+                        </div>
+                        <button onclick="nextCamMirror()" class="absolute top-3 right-3 bg-gray-900/95 text-blue-400 border border-blue-400 text-xs font-mono px-3 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-400 hover:text-black shadow-lg">
+                            <i class="fa-solid fa-rotate"></i> Sync Alt Server
+                        </button>
+                        <div id="cam-status" class="absolute bottom-3 left-3 text-[10px] font-mono text-blue-400 bg-black/80 border border-blue-400/30 px-3 py-1 rounded backdrop-blur uppercase tracking-widest shadow-lg">Source: Space/NASA</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Middle Section: Massive Interactive Map -->
+            <!-- Taller fixed height to look more impressive, but within normal scrolling layout -->
+            <div class="glass-panel cyber-border relative rounded-xl overflow-hidden flex flex-col h-[600px] shadow-2xl shrink-0">
+                <!-- Upgraded Symbolic Map Key -->
+                <div class="absolute top-4 right-4 z-[400] bg-black/90 border border-gray-700 p-4 rounded-lg text-xs font-mono shadow-[0_0_20px_rgba(0,0,0,0.8)] backdrop-blur-md pointer-events-none">
+                    <div class="font-bold border-b border-gray-700 pb-2 mb-3 text-white tracking-widest uppercase flex justify-between items-center">
+                        Intel Signatures <i class="fa-solid fa-satellite text-accent ml-4"></i>
+                    </div>
+                    <div class="flex flex-col gap-2.5">
+                        <div class="flex items-center gap-3 text-gray-300">
+                            <div class="w-6 h-6 rounded-full border-2 border-[#ff3366] flex items-center justify-center shadow-[0_0_8px_#ff3366] bg-[#ff3366]/20 text-[#ff3366]">
+                                <i class="fa-solid fa-crosshairs text-[10px]"></i>
+                            </div> 
+                            <span class="tracking-wide">Military / Kinetic</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-gray-300">
+                            <div class="w-6 h-6 rounded-full border-2 border-[#22d3ee] flex items-center justify-center shadow-[0_0_8px_#22d3ee] bg-[#22d3ee]/20 text-[#22d3ee]">
+                                <i class="fa-solid fa-network-wired text-[10px]"></i>
+                            </div> 
+                            <span class="tracking-wide">Cyber / Info</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-gray-300">
+                            <div class="w-6 h-6 rounded-full border-2 border-[#f97316] flex items-center justify-center shadow-[0_0_8px_#f97316] bg-[#f97316]/20 text-[#f97316]">
+                                <i class="fa-solid fa-bolt text-[10px]"></i>
+                            </div> 
+                            <span class="tracking-wide">Energy / Logistics</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-gray-300">
+                            <div class="w-6 h-6 rounded-full border-2 border-[#a855f7] flex items-center justify-center shadow-[0_0_8px_#a855f7] bg-[#a855f7]/20 text-[#a855f7]">
+                                <i class="fa-solid fa-landmark text-[10px]"></i>
+                            </div> 
+                            <span class="tracking-wide">Political / Diplomatic</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-gray-300">
+                            <div class="w-6 h-6 rounded-full border-2 border-[#22c55e] flex items-center justify-center shadow-[0_0_8px_#22c55e] bg-[#22c55e]/20 text-[#22c55e]">
+                                <i class="fa-solid fa-biohazard text-[10px]"></i>
+                            </div> 
+                            <span class="tracking-wide">Bio / Environment</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-gray-300">
+                            <div class="w-6 h-6 rounded-full border-2 border-[#d1d5db] flex items-center justify-center shadow-[0_0_8px_#d1d5db] bg-[#d1d5db]/20 text-[#d1d5db]">
+                                <i class="fa-solid fa-meteor text-[10px]"></i>
+                            </div> 
+                            <span class="tracking-wide">Space / Orbital</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="map" class="w-full h-full z-0 bg-[#050508]"></div>
+            </div>
+
+            <!-- Bottom Section: AI Forecast (Unrestricted Height / Scrollable Grid) -->
+            <div class="glass-panel border border-gray-800 flex flex-col overflow-hidden rounded-xl mt-2 shadow-lg w-full mb-8">
+                <div class="p-4 border-b border-gray-800 flex flex-col md:flex-row items-start md:items-center justify-between bg-black/80 gap-4">
+                    <h2 class="text-sm font-mono font-bold text-accent uppercase tracking-widest flex items-center">
+                        <i class="fa-solid fa-microchip mr-3 text-xl animate-pulse drop-shadow-[0_0_8px_rgba(0,255,204,0.8)]"></i>
+                        AI Strategic Forecast & Intel Log
+                    </h2>
+                    <div class="flex flex-wrap gap-2" id="ai-filters">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+                <!-- Changed to auto-expanding grid so it scrolls natively with the page -->
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4" id="ai-insights-container">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // --- 1. DATA CONFIGURATION (APRIL 2026 UPDATE) ---
+
+        // Robust YouTube Mirrors
+        const newsStreams = [
+            { name: "Al Jazeera", ids: ["gCNeDWCI0vo", "bBybqNAJUlw", "V0I5eglJMRI"] },
+            { name: "Sky News", ids: ["9Auq9mYxwKw", "lrX6ktLg8WQ", "B1Aki1eY2Qc"] },
+            { name: "DW News", ids: ["V9KEy8dU5CE", "GE_SfNVNyqk", "nv8E-E5-fO0"] },
+            { name: "CNA", ids: ["XWq5kBlakcQ", "63_Y9_79k2k"] }, 
+            { name: "France 24", ids: ["h3MuIUNCCzI", "W2YEyEemHvc", "aL8EWeZlWzw"] },
+            { name: "ABC News", ids: ["W1ilCy6XrmI", "w_Ma8oQLmSM"] },
+            { name: "Reuters", ids: ["5-9D_EshO-Y", "O9mIChBvX2s"] }
+        ];
+
+        const webcamStreams = [
+            { name: "NASA ISS", ids: ["21X5lGlDOfg", "nA9UZF-SZoQ"] },
+            { name: "Middle East", ids: ["1-iRnD5CGro", "P2v06X1r_qI"] },
+            { name: "Europe Cam", ids: ["ph1vpnYixpo", "1EiC9bvVGnk"] },
+            { name: "Tokyo Live", ids: ["v_HWYjt2dzM", "pTj81P0j_J4"] },
+            { name: "Africa Wild", ids: ["0bWMZosqJbA", "7Vv7kH4wYV8"] }
+        ];
+
+        const africaNewsStreams = {
+            "Nigeria": { name: "Channels TV", ids: ["XWq5kBlakcQ", "9Auq9mYxwKw"] },
+            "South Africa": { name: "SABC/News", ids: ["h3MuIUNCCzI", "V9KEy8dU5CE"] },
+            "Kenya": { name: "KTN/K24", ids: ["gCNeDWCI0vo", "W1ilCy6XrmI"] },
+            "Egypt": { name: "Nile News", ids: ["sPgqxEmsNE8", "bBybqNAJUlw"] }
+        };
+
+        const conflicts = [
+            { country: "Sudan", ratio: 95 },
+            { country: "Ukraine", ratio: 92 },
+            { country: "Palestine / Gaza", ratio: 88 },
+            { country: "Myanmar", ratio: 85 },
+            { country: "Taiwan Strait", ratio: 80 },
+            { country: "Sahel (Mali/Niger)", ratio: 78 },
+            { country: "Dem. Rep. Congo", ratio: 75 },
+            { country: "Syria", ratio: 72 },
+            { country: "Somalia", ratio: 70 },
+            { country: "Yemen", ratio: 68 },
+            { country: "Haiti", ratio: 65 },
+            { country: "Nigeria", ratio: 62 },
+            { country: "Ethiopia", ratio: 58 },
+            { country: "Iraq", ratio: 55 },
+            { country: "Korean Peninsula", ratio: 52 },
+            { country: "Afghanistan", ratio: 48 },
+            { country: "Pakistan", ratio: 45 },
+            { country: "Iran", ratio: 42 },
+            { country: "Lebanon", ratio: 38 },
+            { country: "Colombia", ratio: 35 },
+            { country: "Mexico", ratio: 32 },
+            { country: "Libya", ratio: 29 },
+            { country: "Central African Rep.", ratio: 25 },
+            { country: "Mozambique", ratio: 22 },
+            { country: "Venezuela", ratio: 18 },
+            { country: "India (Kashmir)", ratio: 15 },
+            { country: "Philippines", ratio: 12 },
+            { country: "Armenia/Azerbaijan", ratio: 10 },
+            { country: "Ecuador", ratio: 8 },
+            { country: "Balkans", ratio: 5 }
+        ];
+
+        // Ensure all objects have corresponding symbolic FontAwesome icons mapped
+        let intelMarkers = [
+            { type: "military", lat: 31.5, lng: 34.4, title: "Gaza: Buffer Zone Clashes", desc: "Kinetic exchanges near northern perimeter. Automated turrets engaged.", icon: "fa-crosshairs" },
+            { type: "military", lat: 33.8, lng: 35.5, title: "Beirut: Drone Swarm Intercept", desc: "Iron Dome 2.0 neutralizes 15 autonomous UAVs.", icon: "fa-fighter-jet" },
+            { type: "energy", lat: 26.56, lng: 56.25, title: "Strait of Hormuz: Tanker Hacked", desc: "Navigational spoofing forced tanker off course. Naval escort dispatched.", icon: "fa-ship" },
+            { type: "politics", lat: 35.7, lng: 51.4, title: "Tehran: Centrifuge Expansion", desc: "IAEA detects new subterranean facility activation.", icon: "fa-atom" },
+            { type: "military", lat: 15.3, lng: 44.2, title: "Sanaa: Hypersonic Test", desc: "Houthi forces claim successful test of anti-ship missile.", icon: "fa-rocket" },
+            { type: "cyber", lat: 31.7, lng: 35.2, title: "Jerusalem: Water Grid Hack", desc: "SCADA systems breached. Reservoirs isolated by AI defense.", icon: "fa-network-wired" },
+            { type: "military", lat: 33.3, lng: 44.4, title: "Baghdad: Drone Strike", desc: "Precision strike on militia logistical hub.", icon: "fa-crosshairs" },
+            { type: "military", lat: 48.3, lng: 37.8, title: "Donetsk: UGVs Deployed", desc: "Unmanned ground vehicles utilized in frontline assault.", icon: "fa-robot" },
+            { type: "cyber", lat: 50.4, lng: 30.5, title: "Kyiv: Quantum Decryption", desc: "Attempted breach of MoD secure comms using post-quantum algorithms.", icon: "fa-user-secret" },
+            { type: "politics", lat: 55.7, lng: 37.6, title: "Moscow: Economic Pivot", desc: "Total integration of digital ruble in foreign trade mandates.", icon: "fa-coins" },
+            { type: "energy", lat: 55.3, lng: 15.2, title: "Baltic Sea: Subsea Cable", desc: "Unexplained data severance. AUV investigating.", icon: "fa-plug" },
+            { type: "military", lat: 54.7, lng: 20.5, title: "Kaliningrad: Radar Lock", desc: "NATO reconnaissance aircraft illuminated by S-400.", icon: "fa-satellite-dish" },
+            { type: "military", lat: 24.1, lng: 119.5, title: "Taiwan Strait: Blockade Drill", desc: "PLA Navy conducting massive encirclement exercises. High alert.", icon: "fa-anchor" },
+            { type: "politics", lat: 39.9, lng: 116.4, title: "Beijing: AI Regulation", desc: "New global standard proposed for militarized AI systems.", icon: "fa-file-contract" },
+            { type: "cyber", lat: 25.0, lng: 121.5, title: "Taipei: TSMC Cyber Probe", desc: "Advanced persistent threat (APT-41) targeting next-gen fab schematics.", icon: "fa-microchip" },
+            { type: "military", lat: 38.3, lng: 127.3, title: "DMZ: Artillery Exchange", desc: "Warning shots fired following airspace violation by drones.", icon: "fa-burst" },
+            { type: "energy", lat: 1.2, lng: 103.8, title: "Malacca Strait: Traffic Jam", desc: "Autonomous cargo ship collision halts traffic for 12 hours.", icon: "fa-ferry" },
+            { type: "bio", lat: -6.2, lng: 106.8, title: "Jakarta: Bio-Containment", desc: "Novel synthetic pathogen detected in water supply. Quarantine level 2.", icon: "fa-biohazard" },
+            { type: "space", lat: 40.9, lng: 100.2, title: "Jiuquan: Lunar Asset Launch", desc: "Heavy lift rocket deploying lunar communications relay.", icon: "fa-meteor" },
+            { type: "military", lat: 14.5, lng: 114.2, title: "South China Sea: Island Base", desc: "New satellite imagery shows expanded runway and missile silos.", icon: "fa-plane" },
+            { type: "cyber", lat: 38.9, lng: -77.0, title: "Pentagon: Deepfake Briefing", desc: "Emergency protocol activated regarding AI-generated commanding officer orders.", icon: "fa-mask" },
+            { type: "cyber", lat: 37.3, lng: -121.9, title: "Silicon Valley: AGI Breach", desc: "Rogue process isolated after attempting to copy weights to external servers.", icon: "fa-brain" },
+            { type: "military", lat: 31.7, lng: -106.4, title: "El Paso: Cartel Drones", desc: "Armed commercial drones engaged by border patrol C-RAM.", icon: "fa-gun" },
+            { type: "energy", lat: 29.7, lng: -95.3, title: "Texas: Grid Strain", desc: "Extreme heatwave pushing grid to 99% capacity. AI load balancing active.", icon: "fa-bolt" },
+            { type: "space", lat: 28.3, lng: -80.6, title: "Cape Canaveral: Orbital Defense", desc: "Space Force launch of inspector satellite to monitor unknown object.", icon: "fa-space-shuttle" },
+            { type: "bio", lat: 33.7, lng: -84.3, title: "Atlanta: Pathogen X", desc: "CDC analyzing samples of highly mutating avian-swine hybrid strain.", icon: "fa-viruses" },
+            { type: "politics", lat: 50.8, lng: 4.3, title: "Brussels: AI Act Enforcement", desc: "EU levies record €10B fine against tech conglomerate.", icon: "fa-gavel" },
+            { type: "cyber", lat: 51.5, lng: -0.1, title: "London: Market Flash Crash", desc: "AI trading algorithms hallucinate data, causing momentary 5% drop.", icon: "fa-arrow-trend-down" },
+            { type: "energy", lat: 48.8, lng: 2.3, title: "Paris: Fusion Breakthrough", desc: "ITER reactor achieves sustained Q>10 plasma for 60 seconds.", icon: "fa-sun" },
+            { type: "energy", lat: 9.2, lng: -79.9, title: "Panama Canal: Climate Crisis", desc: "Severe drought closes additional locks. Supply chain cascading failures.", icon: "fa-temperature-high" },
+            { type: "bio", lat: -3.1, lng: -60.0, title: "Amazon: Ecosystem Collapse", desc: "Sensor nets indicate 40% drop in humidity. High fire risk.", icon: "fa-tree" },
+            { type: "politics", lat: -34.6, lng: -58.3, title: "Buenos Aires: Digital Currency", desc: "Protests erupt over mandatory transition to Central Bank Digital Coin.", icon: "fa-users" },
+            { type: "military", lat: 15.5, lng: 32.5, title: "Khartoum: Siege Continues", desc: "RSF utilizes new thermal-evading camo. High civilian casualties.", icon: "fa-jet-fighter", country: "Sudan" },
+            { type: "military", lat: 11.8, lng: 13.1, title: "Borno State: Insurgent Push", desc: "Coordinated attack using captured armored vehicles.", icon: "fa-bomb", country: "Nigeria" },
+            { type: "politics", lat: -25.7, lng: 28.2, title: "Pretoria: BRICS Summit", desc: "Finalization of non-dollar trade settlement system.", icon: "fa-handshake", country: "South Africa" },
+            { type: "cyber", lat: -1.2, lng: 36.8, title: "Nairobi: Telecom Sabotage", desc: "Major fiber optic hub physically attacked. Connectivity down 30%.", icon: "fa-wifi", country: "Kenya" },
+            { type: "energy", lat: 30.0, lng: 31.2, title: "Suez Canal: Dredging", desc: "AI-piloted dredgers expanding southern bottleneck.", icon: "fa-ship", country: "Egypt" },
+            { type: "bio", lat: -4.3, lng: 15.3, title: "Kinshasa: Outbreak Alert", desc: "AI health monitors flag unusual hemorrhagic symptoms in mining towns.", icon: "fa-notes-medical", country: "Dem. Rep. Congo" },
+            { type: "politics", lat: 13.5, lng: 2.1, title: "Niamey: Uranium Embargo", desc: "Junta officially restricts all exports to European nations.", icon: "fa-radiation", country: "Niger" },
+            { type: "military", lat: 12.6, lng: -8.0, title: "Bamako: PMC Deployment", desc: "Foreign mercenaries securing critical lithium deposits.", icon: "fa-person-military-rifle", country: "Mali" },
+            { type: "energy", lat: 5.3, lng: 6.4, title: "Niger Delta: Pipeline AI", desc: "Drone surveillance reduces illegal bunkering by 80%.", icon: "fa-droplet", country: "Nigeria" },
+            { type: "space", lat: -75.0, lng: 0.0, title: "Antarctica: Comms Relay", desc: "New polar ground station detects anomalous deep space signals.", icon: "fa-satellite-dish" },
+            { type: "space", lat: 0.0, lng: -45.0, title: "Mid-Atlantic: Debris Re-entry", desc: "Dead satellite burns up safely. Tracked by global orbital grid.", icon: "fa-meteor" }
+        ];
+
+        const tickerNews = [
+            "WORLDMONITOR.APP SYNC: Taiwan Strait naval drills escalate to live-fire zones.",
+            "CYBER COMMAND: Quantum-resistant encryption rollout expedited to Tier 1 infrastructure.",
+            "MARKETS: Oil futures volatile amid Strait of Hormuz GPS spoofing incidents.",
+            "SPACE: ISS maneuvers to avoid shrapnel from recent ASAT test.",
+            "AFRICA: BRICS finalizes unified digital currency testing in Pretoria.",
+            "AI FORECAST: 85% probability of major grid disruption in Eastern Europe within 72 hours."
+        ];
+
+        const categories = ["All", "Military", "Cyber", "Energy", "Politics", "Bio", "Space"];
+
+        // --- 2. STATE & STREAM MANAGEMENT ---
+        let currentMode = 'global'; 
+        let map, markersLayer;
+        let currentAiFilter = 'All';
+
+        let activeNewsChannel = newsStreams[0];
+        let activeNewsMirrorIdx = 0;
+        let activeCamChannel = webcamStreams[0];
+        let activeCamMirrorIdx = 0;
+
+        // --- 3. CORE FUNCTIONS ---
+        function getThemeConfig(type) {
+            const config = {
+                military: { color: '#ff3366', icon: 'fa-crosshairs' },
+                cyber: { color: '#22d3ee', icon: 'fa-network-wired' },
+                energy: { color: '#f97316', icon: 'fa-bolt' },
+                politics: { color: '#a855f7', icon: 'fa-landmark' },
+                bio: { color: '#22c55e', icon: 'fa-biohazard' },
+                space: { color: '#d1d5db', icon: 'fa-meteor' }
+            };
+            return config[type.toLowerCase()] || { color: '#6b7280', icon: 'fa-circle-info' };
+        }
+
+        function initTicker() {
+            const ticker = document.getElementById('news-ticker');
+            ticker.innerHTML = tickerNews.join('&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;');
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const simDate = new Date(now.setFullYear(2026, 3, 27)); 
+            document.getElementById('clock').innerText = simDate.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        }
+
+        function renderConflicts() {
+            const list = document.getElementById('conflict-list');
+            list.innerHTML = '';
+            conflicts.sort((a,b) => b.ratio - a.ratio).forEach((c, index) => {
+                let color = 'text-blue-400';
+                if(c.ratio > 85) color = 'text-warning';
+                else if(c.ratio > 60) color = 'text-orange-500';
+                else if(c.ratio > 35) color = 'text-yellow-400';
+
+                const el = document.createElement('div');
+                el.className = `flex justify-between items-center p-2.5 hover:bg-white/10 rounded cursor-pointer transition-colors border-l-2 ${color.replace('text', 'border')} bg-black/50`;
+                el.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-600 text-xs w-4 font-bold">${index + 1}.</span>
+                        <span class="text-gray-200 font-bold tracking-wide">${c.country}</span>
+                    </div>
+                    <span class="${color} font-bold font-mono bg-black/40 px-2 py-0.5 rounded">${c.ratio}%</span>
+                `;
+                el.onclick = () => { map.setView([20, 0], 4); }; 
+                list.appendChild(el);
+            });
+        }
+
+        // --- STREAM HANDLING ---
+        function loadNewsStream(channel, mirrorIdx = 0) {
+            activeNewsChannel = channel;
+            activeNewsMirrorIdx = mirrorIdx;
+            const id = channel.ids[mirrorIdx % channel.ids.length]; 
+            document.getElementById('news-frame').src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`;
+            document.getElementById('news-status').innerText = `Source: ${channel.name} (Relay 0${activeNewsMirrorIdx + 1})`;
+        }
+
+        function nextNewsMirror() {
+            activeNewsMirrorIdx++;
+            loadNewsStream(activeNewsChannel, activeNewsMirrorIdx);
+        }
+
+        function loadCamStream(channel, mirrorIdx = 0) {
+            activeCamChannel = channel;
+            activeCamMirrorIdx = mirrorIdx;
+            const id = channel.ids[mirrorIdx % channel.ids.length];
+            document.getElementById('cam-frame').src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`;
+            document.getElementById('cam-status').innerText = `Source: ${channel.name} (Relay 0${activeCamMirrorIdx + 1})`;
+        }
+
+        function nextCamMirror() {
+            activeCamMirrorIdx++;
+            loadCamStream(activeCamChannel, activeCamMirrorIdx);
+        }
+
+        function renderMediaSelectors() {
+            const nSel = document.getElementById('news-selector');
+            nSel.innerHTML = '';
+            newsStreams.forEach(stream => {
+                const btn = document.createElement('button');
+                btn.className = "px-3 py-1.5 text-[10px] uppercase tracking-wider rounded border border-gray-700 hover:border-accent hover:text-accent transition-all font-mono text-gray-300 hover:bg-accent/10";
+                btn.innerText = stream.name;
+                btn.onclick = () => loadNewsStream(stream, 0);
+                nSel.appendChild(btn);
+            });
+
+            const cSel = document.getElementById('cam-selector');
+            cSel.innerHTML = '';
+            webcamStreams.forEach(cam => {
+                const btn = document.createElement('button');
+                btn.className = "px-3 py-1.5 text-[10px] uppercase tracking-wider rounded border border-gray-700 hover:border-blue-400 hover:text-blue-400 transition-all font-mono text-gray-300 hover:bg-blue-400/10";
+                btn.innerText = cam.name;
+                btn.onclick = () => loadCamStream(cam, 0);
+                cSel.appendChild(btn);
+            });
+        }
+
+        // --- MAP SYSTEM (Symbolic) ---
+        function initMap() {
+            // Disabled scroll wheel zoom to not trap scrolling on the larger page
+            map = L.map('map', { zoomControl: true, attributionControl: false, scrollWheelZoom: false }).setView([20, 10], 3);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+            markersLayer = L.layerGroup().addTo(map);
+            drawMarkers(intelMarkers);
+        }
+
+        function drawMarkers(markersData) {
+            markersLayer.clearLayers();
+            markersData.forEach(m => {
+                const theme = getThemeConfig(m.type);
+                const isCritical = m.type === 'military';
+                
+                // Return of the symbolic marker design
+                const customIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `
+                        <div class="map-icon-marker ${isCritical ? 'pulse-severe' : ''}" style="border-color: ${theme.color}; width: 28px; height: 28px; background-color: ${theme.color}20;">
+                            <i class="fa-solid ${m.icon || theme.icon} text-[12px]" style="color: ${theme.color}; text-shadow: 0 0 5px ${theme.color};"></i>
+                        </div>
+                    `,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                const marker = L.marker([m.lat, m.lng], {icon: customIcon}).addTo(markersLayer);
+                
+                let popupContent = `
+                    <div class="p-3 font-mono min-w-[220px]">
+                        <div class="text-[10px] font-bold uppercase mb-2 flex items-center gap-2" style="color:${theme.color}">
+                            <i class="fa-solid ${m.icon || theme.icon}"></i> ${m.type} // DATA NODE
+                        </div>
+                        <div class="font-bold text-sm mb-1.5 text-white tracking-wide leading-tight">${m.title}</div>
+                        <div class="text-xs text-gray-300 leading-snug">${m.desc}</div>
+                `;
+                
+                if (currentMode === 'africa' && m.country && africaNewsStreams[m.country]) {
+                    popupContent += `
+                        <button onclick="playAfricanNews('${m.country}')" class="mt-4 w-full bg-warning hover:bg-red-700 text-white text-[10px] font-bold py-2 rounded transition-colors tracking-widest uppercase">
+                            <i class="fa-solid fa-satellite-dish mr-1"></i> Intercept TV
+                        </button>
+                    `;
+                }
+                
+                popupContent += `</div>`;
+                marker.bindPopup(popupContent);
+            });
+        }
+
+        window.playAfricanNews = function(country) {
+            if(africaNewsStreams[country]) {
+                loadNewsStream(africaNewsStreams[country], 0);
+                
+                const nSel = document.getElementById('news-selector');
+                const badge = document.createElement('div');
+                badge.className = "px-3 py-1.5 text-[10px] rounded bg-warning text-white font-bold ml-auto animate-pulse tracking-widest uppercase";
+                badge.innerText = `OVERRIDE: ${country} LOCAL`;
+                nSel.appendChild(badge);
+                setTimeout(() => badge.remove(), 10000);
+            }
+        };
+
+        // --- AI INSIGHTS (Elite Grid) ---
+        function renderAIFilters() {
+            const container = document.getElementById('ai-filters');
+            container.innerHTML = '';
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = `filter-btn px-4 py-2 text-[10px] uppercase tracking-widest rounded font-mono transition-all text-gray-400 border border-gray-700 hover:border-accent hover:text-accent ${cat === currentAiFilter ? 'active' : ''}`;
+                btn.innerText = cat;
+                btn.onclick = () => {
+                    currentAiFilter = cat;
+                    renderAIFilters();
+                    renderAIInsights();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderAIInsights() {
+            const container = document.getElementById('ai-insights-container');
+            container.innerHTML = '';
+            
+            const filtered = currentAiFilter === 'All' 
+                ? intelMarkers 
+                : intelMarkers.filter(i => i.type.toLowerCase() === currentAiFilter.toLowerCase());
+
+            // Expand to show more data organically
+            filtered.forEach((item, idx) => {
+                const theme = getThemeConfig(item.type);
+                const confidence = (85 + (Math.random() * 14)).toFixed(1); // Fake confidence rating for elite feel
+                
+                const el = document.createElement('div');
+                el.className = "ai-card bg-black/60 p-4 rounded-lg border border-gray-800 transition-all cursor-pointer flex flex-col justify-between group h-full";
+                
+                el.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-[9px] uppercase font-bold px-2 py-1 rounded tracking-widest border" style="background-color: ${theme.color}15; color: ${theme.color}; border-color: ${theme.color}50;">
+                                <i class="fa-solid ${item.icon || theme.icon} mr-1"></i> ${item.type}
+                            </span>
+                            <span class="text-[9px] text-gray-500 font-mono text-right">
+                                CONF: <span class="text-white">${confidence}%</span><br>
+                                ID: NX-${(1000+idx).toString(16).toUpperCase()}
+                            </span>
+                        </div>
+                        <div class="font-bold text-[13px] text-gray-100 mb-2 leading-tight group-hover:text-accent transition-colors">${item.title}</div>
+                        <div class="text-[11px] text-gray-400 leading-relaxed">${item.desc}</div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-800/50 flex justify-between items-center text-[9px] font-mono text-gray-500">
+                        <span class="group-hover:text-accent transition-colors"><i class="fa-solid fa-location-crosshairs"></i> ${item.lat.toFixed(2)}, ${item.lng.toFixed(2)}</span>
+                        <span class="bg-gray-900 px-2 py-1 rounded">ACTION: MONITOR</span>
+                    </div>
+                `;
+                
+                el.onclick = () => { 
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    map.flyTo([item.lat, item.lng], 6, { duration: 1.5 }); 
+                };
+                container.appendChild(el);
+            });
+        }
+
+        // --- VIEW MODES & SYNC ---
+        window.switchMode = function(mode) {
+            currentMode = mode;
+            const btnGlobal = document.getElementById('btn-mode-global');
+            const btnAfrica = document.getElementById('btn-mode-africa');
+
+            if (mode === 'global') {
+                btnGlobal.classList.add('active');
+                btnAfrica.classList.remove('active', 'border-accent');
+                map.flyTo([20, 10], 3, { duration: 1 });
+                drawMarkers(intelMarkers);
+            } else {
+                btnAfrica.classList.add('active', 'border-accent');
+                btnGlobal.classList.remove('active');
+                map.flyTo([0, 20], 4, { duration: 1.5 });
+                const allAfricaMarkers = intelMarkers.filter(m => m.lat > -35 && m.lat < 37 && m.lng > -20 && m.lng < 55);
+                drawMarkers(allAfricaMarkers);
+            }
+        };
+
+        // Bootstrap
+        document.addEventListener('DOMContentLoaded', () => {
+            initTicker();
+            setInterval(updateClock, 1000); updateClock();
+            document.getElementById('node-count').innerText = intelMarkers.length;
+            renderConflicts();
+            renderMediaSelectors();
+            loadNewsStream(newsStreams[0]);
+            loadCamStream(webcamStreams[0]);
+            initMap();
+            renderAIFilters();
+            renderAIInsights();
+        });
+
+    </script>
+</body>
+</html>

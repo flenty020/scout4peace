@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WISPERNET | Peace Intelligence Network</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Lora:ital@1&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --scout-blue: #2563eb;
+            --scout-brown: #c29b6e;
+            --scout-green: #16a34a;
+            --scout-purple: #9333ea;
+            --scout-red: #dc2626;
+            --net-glow: rgba(37, 99, 235, 0.4);
+        }
+
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            background-color: #020617; 
+            background-image: linear-gradient(180deg, rgba(2, 6, 23, 1) 0%, rgba(30, 58, 138, 0.7) 40%, rgba(2, 6, 23, 0) 100%), url('WhatsApp Image 2026-04-23 at 12.21.35 PM.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: white; 
+            scroll-behavior: smooth; 
+            overflow-x: hidden; 
+        }
+
+        .serif { font-family: 'Lora', serif; }
+        
+        .heading-xl { 
+            font-size: clamp(3.5rem, 12vw, 120px); 
+            line-height: 0.85; 
+            font-weight: 900; 
+            font-style: italic; 
+            letter-spacing: -4px; 
+            position: relative;
+            z-index: 10;
+        }
+
+        .net-r {
+            font-size: 1.4em;
+            transform: translateY(10px) skewX(-12deg);
+            display: inline-block;
+        }
+
+        .bent-title { transform: perspective(800px) rotateX(15deg); }
+
+        .signal-container {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        .signal {
+            position: absolute; border: 2px solid var(--net-glow);
+            border-radius: 50%; animation: ripple 6s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+            opacity: 0; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        }
+
+        .signal:nth-child(1) { animation-delay: 0s; }
+        .signal:nth-child(2) { animation-delay: 2s; }
+        .signal:nth-child(3) { animation-delay: 4s; }
+
+        @keyframes ripple {
+            0% { width: 0; height: 0; opacity: 1; }
+            100% { width: 1200px; height: 1200px; opacity: 0; }
+        }
+
+        .flip-card { background-color: transparent; width: 100%; height: 550px; perspective: 1500px; }
+        .flip-card-inner {
+            position: relative; width: 100%; height: 100%;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden; border-radius: 4rem; padding: 4rem;
+        }
+        .flip-card-front { 
+            background: rgba(15, 23, 42, 0.6); 
+            backdrop-filter: blur(10px);
+            display: flex; flex-direction: column; justify-content: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .flip-card-back { 
+            background: rgba(30, 41, 59, 0.95); color: white; transform: rotateY(180deg); 
+            backdrop-filter: blur(10px);
+            display: flex; flex-direction: column; justify-content: center;
+            border: 2px solid var(--scout-brown);
+        }
+
+        .sdg-card { 
+            border-left: 8px solid rgba(255,255,255,0.05); 
+            padding: 4rem; background: rgba(15,23,42,0.6); 
+            backdrop-filter: blur(8px);
+            transition: 0.6s; border-radius: 0 5rem 5rem 0; 
+        }
+        .sdg-card:hover { transform: translateX(25px); background: rgba(30,41,59,0.9); }
+
+        #live-map { 
+            width: 100%; height: 600px; border-radius: 4rem; 
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+        }
+
+        .glass { background: rgba(2, 6, 23, 0.7); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .emerge { opacity: 0; transform: translateY(40px); transition: 1s ease-out; }
+        .emerge-active { opacity: 1; transform: translateY(0); }
+        
+        section { padding: 180px 10%; }
+        
+        .feed-scroll::-webkit-scrollbar { width: 4px; }
+        .feed-scroll::-webkit-scrollbar-thumb { background: var(--scout-purple); border-radius: 10px; }
+
+        .tactical-input {
+            background: rgba(2, 6, 23, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            color: white;
+            outline: none;
+            transition: 0.3s;
+        }
+        .tactical-input:focus { border-color: var(--scout-purple); box-shadow: 0 0 20px rgba(147, 51, 234, 0.2); }
+
+        .sponsor-logo {
+            height: 50px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="flex items-center justify-between px-12 py-6 fixed w-full z-[100] glass">
+        <div class="flex items-center gap-6">
+            <div class="text-3xl font-black italic tracking-tighter uppercase">WISPE<span class="net-r text-blue-500">R</span>NET</div>
+            <div class="h-8 w-[1px] bg-white/10 hidden md:block"></div>
+            <div class="hidden md:flex items-center gap-3">
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Presented By</span>
+              <img src="https://static.wixstatic.com/media/d78d02_342608c73a1b4f1eb67ee53c9802b598~mv2.jpg" 
+     alt="Kisii University Logo" 
+     class="sponsor-logo" 
+     width="50" 
+     height="50">
+            </div>
+        </div>
+
+        <div class="hidden xl:flex gap-14 items-center">
+            <a href="#intro" class="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 hover:text-white transition-all">Intel</a>
+            <a href="#visions" class="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 hover:text-white transition-all">Vision</a>
+            <a href="#code" class="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 hover:text-white transition-all">The Code</a>
+            <a href="#encyclopedia" class="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 hover:text-white transition-all">1-17 SDG</a>
+            <a href="#radar" class="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 hover:text-white transition-all">Radar</a>
+        </div>
+
+        <div class="flex gap-4">
+            <a href="login.html" class="bg-blue-600 text-white px-10 py-3 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
+                Access Hub
+            </a>
+            <a href="admin.html" class="border border-white/20 text-white px-4 py-3 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
+                Admin
+            </a>
+        </div>
+    </nav>
+
+    <header id="intro" class="min-h-screen flex flex-col items-center justify-center text-center bg-transparent relative overflow-hidden">
+        <div class="signal-container">
+            <div class="signal"></div><div class="signal"></div><div class="signal"></div>
+        </div>
+        <div class="max-w-6xl px-6 z-10">
+            <p class="text-[12px] tracking-[1em] uppercase text-green-500 font-black mb-8 emerge">Civil Intelligence Network</p>
+            <h1 class="heading-xl bent-title emerge text-white">WISPE<span class="net-r text-blue-500">R</span>NET</h1>
+            <p class="serif text-5xl text-slate-300 italic mt-10 emerge">"Whispers  of  peace"</p>
+            <p class="serif text-xl text-slate-400 italic mt-10 emerge">The Silent Network of Progress</p>
+        </div>
+        <button onclick="window.location.href='globalintelligence.html'"
+    class="relative px-6 py-2 rounded-full font-mono text-sm font-bold
+           text-accent border border-accent
+           bg-transparent overflow-hidden
+           transition-all duration-300
+           hover:bg-accent hover:text-dark
+           hover:shadow-[0_0_15px_rgba(0,255,204,0.6)]
+           group">
+
+    <span class="relative z-10">
+        GLOBAL INTELLIGENCE
+    </span>
+
+    <!-- Glow effect layer -->
+    <span class="absolute inset-0 bg-accent opacity-0 group-hover:opacity-20 transition-all duration-300"></span>
+</button>
+    </header>
+
+    <section id="visions" class="bg-transparent">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-7xl font-black italic uppercase mb-24 emerge text-center text-white">Mandates</h2>
+            
+            <div class="grid lg:grid-cols-2 gap-16">
+                <div class="flip-card emerge">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <h3 class="text-5xl font-black italic text-green-500 mb-8 uppercase">Kenya Vision 2030</h3>
+                            <p class="text-slate-300 serif italic text-3xl leading-snug">The Social Pillar: Building a just and cohesive society through equitable development.</p>
+                        </div>
+                        <div class="flip-card-back">
+                            <h4 class="text-green-500 font-black uppercase text-sm mb-6">Tactical Implementation</h4>
+                            <p class="text-slate-200 text-xl italic serif">Neutralizing regional triggers of unrest via community-led monitoring and equitable development.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flip-card emerge">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <h3 class="text-5xl font-black italic text-red-600 mb-8 uppercase">AU Aspiration 2063</h3>
+                            <p class="text-slate-300 serif italic text-3xl leading-snug">Aspiration 4: A Peaceful and Secure Africa with a culture of peace and harmony.</p>
+                        </div>
+                        <div class="flip-card-back">
+                            <h4 class="text-red-500 font-black uppercase text-sm mb-6">Strategic Logic</h4>
+                            <p class="text-slate-200 text-xl italic serif">Silencing the guns by empowering youth as the continent's early-warning nervous system.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="code" class="bg-slate-950/40 backdrop-blur-sm">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-7xl font-black italic uppercase mb-20 text-center text-white">The Code</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-8">
+                <script>
+                    const laws = ["Trustworthy", "Loyal", "Helpful", "Friendly", "Courteous", "Kind", "Obedient", "Cheerful", "Thrifty", "Clean"];
+                    const codeColors = ['text-[#c29b6e]', 'text-green-500', 'text-red-500', 'text-blue-500', 'text-white', 'text-[#c29b6e]', 'text-green-500', 'text-red-500', 'text-blue-500', 'text-white'];
+                    
+                    laws.forEach((law, i) => {
+                        document.write(`
+                            <div class="bg-slate-900/40 backdrop-blur-md p-12 rounded-[3rem] border border-white/10 text-center emerge">
+                                <span class="${codeColors[i]} font-black text-3xl">${(i+1)}</span>
+                                <p class="text-[11px] text-white font-black uppercase mt-6 tracking-widest">${law}</p>
+                            </div>
+                        `);
+                    });
+                </script>
+            </div>
+        </div>
+    </section>
+
+    <section id="encyclopedia" class="bg-transparent">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-8xl font-black italic uppercase mb-24 emerge text-white">SDG Encyclopedia</h2>
+            <div class="grid lg:grid-cols-2 gap-16 mt-20" id="sdg-grid"></div>
+        </div>
+    </section>
+
+    <section id="radar" class="bg-slate-950/60 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-6xl font-black italic uppercase mb-20 emerge text-center text-white">Peace Intelligence Radar</h2>
+            <div id="live-map" class="mb-24 shadow-2xl"></div>
+            
+            <div class="grid lg:grid-cols-2 gap-20">
+                <div class="bg-slate-900/40 backdrop-blur-md p-14 rounded-[4rem] border border-white/5 emerge">
+                    <h3 class="text-3xl font-black italic text-[#8b5a2b] mb-10 uppercase">Broadcast Intel</h3>
+                    
+                    <div class="space-y-6">
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-2">1. Your Name</label>
+                            <input type="text" id="username" placeholder="Enter designation..." class="tactical-input">
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-2">2. Topic</label>
+                            <input type="text" id="topic" placeholder="Subject / Sector" class="tactical-input">
+                        </div>
+
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-2">3. Message Post</label>
+                            <textarea id="intel-message" rows="4" placeholder="Full tactical briefing..." class="tactical-input serif italic text-xl"></textarea>
+                        </div>
+
+                        <button onclick="submitIntel()" class="w-full bg-blue-600 py-6 mt-4 rounded-full font-black text-white uppercase text-[11px] tracking-[0.4em] hover:bg-white hover:text-blue-600 transition-all shadow-xl">Transmit to Network</button>
+                    </div>
+                </div>
+
+                <div id="feed" class="max-h-[700px] overflow-y-auto feed-scroll space-y-8 pr-6">
+                    <div class="bg-blue-900/20 backdrop-blur-md p-10 rounded-[2.5rem] border border-blue-500/30">
+                        <p class="text-blue-400 font-black text-xs uppercase mb-1">Network Status</p>
+                        <p class="text-[10px] text-slate-400 mb-3 tracking-widest">ENCRYPTED // 2026</p>
+                        <p class="text-xl italic serif text-slate-200">"WISPERNET terminal ready. Field data will be geolocated and time-verified."</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SPONSORSHIP FOOTER AREA -->
+    <footer class="py-32 bg-slate-950/90 border-t border-white/10">
+        <div class="max-w-7xl mx-auto px-10 flex flex-col items-center">
+            <div class="flex flex-col md:flex-row items-center gap-12 mb-16 emerge">
+               <img src="https://static.wixstatic.com/media/d78d02_342608c73a1b4f1eb67ee53c9802b598~mv2.jpg" 
+     alt="Kisii University Logo" 
+     class="drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+     width="300" 
+     height="300">
+                <div class="text-center md:text-left">
+                    <p class="text-blue-500 font-black tracking-[0.5em] uppercase text-xs mb-4">Official Proprietor & Sponsor</p>
+                    <h2 class="text-4xl md:text-6xl font-black uppercase italic leading-none mb-6">Kisii University<br>Flamingo Rover Scouts</h2>
+                    <p class="serif italic text-slate-400 text-xl max-w-xl">"Service is the core of our intelligence. Empowering youth to lead through local action and global vision."</p>
+                </div>
+            </div>
+            
+            <div class="h-[1px] w-full bg-white/5 mb-10"></div>
+            <p class="text-[10px] text-white/30 font-black uppercase tracking-[1.5em] text-center">WISPERNET Tactical Archive 2026 &copy; Flamingo Rover Scouts</p>
+        </div>
+    </footer>
+
+    <script>
+        const sdgData = [
+            { id: "01", title: "No Poverty", color: "#e5243b", desc: "Systemic wealth distribution is the foundation of peace." },
+            { id: "02", title: "Zero Hunger", color: "#dda63a", desc: "Eliminating scarcity removes the triggers of resource war." },
+            { id: "03", title: "Good Health", color: "#4c9f38", desc: "A healthy society is a cooperative and stable society." },
+            { id: "04", title: "Quality Education", color: "#c5192d", desc: "Knowledge is the shield against ideological manipulation." },
+            { id: "05", title: "Gender Equality", color: "#ff3a21", desc: "Inclusive leadership leads to more sustainable peace treaties." },
+            { id: "06", title: "Clean Water", color: "#26bde2", desc: "Universal water access prevents tribal and regional conflict." },
+            { id: "07", title: "Clean Energy", color: "#fcc30b", desc: "Transitioning to renewables stops global fuel-based tensions." },
+            { id: "08", title: "Decent Work", color: "#a21942", desc: "Productive employment prevents youth militia recruitment." },
+            { id: "09", title: "Industry", color: "#fd6925", desc: "Robust infrastructure bridges the gap between ethnicities." },
+            { id: "10", title: "Reduced Inequality", color: "#dd1367", desc: "Social harmony is the byproduct of economic fairness." },
+            { id: "11", title: "Sustainable Cities", color: "#fd9d24", desc: "Dignified urban living reduces the friction of modern life." },
+            { id: "12", title: "Consumption", color: "#bf8b2e", desc: "Responsible stewardship ensures long-term survival." },
+            { id: "13", title: "Climate Action", color: "#3f7e44", desc: "Solving the climate crisis prevents mass human displacement." },
+            { id: "14", title: "Life Below Water", color: "#0a97d9", desc: "Healthy oceans secure the global food supply chain." },
+            { id: "15", title: "Life on Land", color: "#56c02b", desc: "Reforestation stops land-use disputes at the source." },
+            { id: "16", title: "Peace & Justice", color: "#00689d", desc: "The core engine: Strong institutions and human rights." },
+            { id: "17", title: "Partnerships", color: "#19486a", desc: "Global networking is the only tactical path to success." }
+        ];
+
+        const grid = document.getElementById('sdg-grid');
+        sdgData.forEach(s => {
+            grid.innerHTML += `
+                <div class="sdg-card emerge" style="border-left-color: ${s.color}">
+                    <span class="text-xs font-black tracking-widest uppercase" style="color: ${s.color}">Goal ${s.id}</span>
+                    <h4 class="text-5xl text-white font-black mt-10 mb-8 uppercase leading-none">${s.title}</h4>
+                    <p class="text-2xl text-slate-300 serif italic leading-relaxed">${s.desc}</p>
+                </div>
+            `;
+        });
+
+        var map = L.map('live-map', { zoomControl: false }).setView([-0.678, 34.773], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+        function submitIntel() {
+            const name = document.getElementById('username').value || "Unknown Scout";
+            const topic = document.getElementById('topic').value || "General Intelligence";
+            const msg = document.getElementById('intel-message').value;
+            
+            if(!msg) return;
+            
+            const now = new Date();
+            const timeStamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateStamp = now.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+            const mapPos = map.getCenter();
+
+            const marker = L.circleMarker(mapPos, { radius: 10, color: '#2563eb', fillOpacity: 0.6 }).addTo(map);
+            marker.bindPopup(`<b>${topic}</b><br>${name}: ${msg}`).openPopup();
+
+            const feed = document.getElementById('feed');
+            const item = document.createElement('div');
+            item.className = "bg-slate-900/60 backdrop-blur-sm p-10 rounded-[2.5rem] border border-white/10 transition-all";
+            item.innerHTML = `
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <p class="text-[#c29b6e] font-black text-xs uppercase mb-1">${topic}</p>
+                        <p class="text-white font-black text-lg uppercase tracking-tight">${name}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-white/50 font-black uppercase">${timeStamp} // ${dateStamp}</p>
+                        <p class="text-[9px] text-blue-500 font-bold tracking-widest mt-1">LAT: ${mapPos.lat.toFixed(2)}</p>
+                    </div>
+                </div>
+                <p class="text-xl italic serif text-slate-200 border-t border-white/10 pt-6 leading-relaxed">"${msg}"</p>
+            `;
+            feed.prepend(item);
+            
+            document.getElementById('topic').value = "";
+            document.getElementById('intel-message').value = "";
+        }
+
+        const emergeObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('emerge-active'); });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.emerge').forEach(el => emergeObserver.observe(el));
+    </script>
+</body>
+</html>
