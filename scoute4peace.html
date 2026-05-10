@@ -108,7 +108,8 @@
 
         #live-map { 
             width: 100%; height: 600px; border-radius: 4rem; 
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 4px solid var(--scout-green);
+            box-shadow: 0 0 50px rgba(22, 163, 74, 0.3);
             z-index: 10;
         }
 
@@ -133,11 +134,30 @@
         }
         .tactical-input:focus { border-color: var(--scout-purple); box-shadow: 0 0 20px rgba(147, 51, 234, 0.2); }
 
+        /* Kenya Scout Pulse Animation */
+        .scout-pulse {
+            width: 20px; height: 20px; background: #16a34a; border-radius: 50%;
+            border: 2px solid white; box-shadow: 0 0 0 rgba(22, 163, 74, 0.4); 
+            animation: pulse-scout 2s infinite;
+        }
+        @keyframes pulse-scout {
+            0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+            70% { box-shadow: 0 0 0 25px rgba(22, 163, 74, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+        }
+
         .sponsor-logo {
             height: 50px;
             width: auto;
             object-fit: contain;
             filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+        }
+
+        .map-overlay-coord {
+            position: absolute; bottom: 20px; right: 20px;
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
+            padding: 10px 20px; border-radius: 1rem; border: 1px solid var(--scout-green);
+            z-index: 1000; font-family: monospace; color: #16a34a; font-size: 11px;
         }
     </style>
 </head>
@@ -149,11 +169,7 @@
             <div class="h-8 w-[1px] bg-white/10 hidden md:block"></div>
             <div class="hidden md:flex items-center gap-3">
                 <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Presented By</span>
-              <img src="https://static.wixstatic.com/media/d78d02_342608c73a1b4f1eb67ee53c9802b598~mv2.jpg" 
-     alt="Kisii University Logo" 
-     class="sponsor-logo" 
-     width="50" 
-     height="50">
+                <img src="https://static.wixstatic.com/media/d78d02_342608c73a1b4f1eb67ee53c9802b598~mv2.jpg" alt="Kisii University Logo" class="sponsor-logo" width="50" height="50">
             </div>
         </div>
 
@@ -166,12 +182,8 @@
         </div>
 
         <div class="flex gap-4">
-            <a href="login.html" class="bg-blue-600 text-white px-10 py-3 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
-                Access Hub
-            </a>
-            <a href="admin.html" class="border border-white/20 text-white px-4 py-3 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
-                Admin
-            </a>
+            <a href="login.html" class="bg-blue-600 text-white px-10 py-3 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Access Hub</a>
+            <a href="admin.html" class="border border-white/20 text-white px-4 py-3 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Admin</a>
         </div>
     </nav>
 
@@ -182,31 +194,18 @@
         <div class="max-w-6xl px-6 z-10">
             <p class="text-[12px] tracking-[1em] uppercase text-green-500 font-black mb-8 emerge">Civil Intelligence Network</p>
             <h1 class="heading-xl bent-title emerge text-white">WISPE<span class="net-r text-blue-500">R</span>NET</h1>
-            <p class="serif text-5xl text-slate-300 italic mt-10 emerge">"Whispers  of  peace"</p>
+            <p class="serif text-5xl text-slate-300 italic mt-10 emerge">"Whispers of peace"</p>
             <p class="serif text-xl text-slate-400 italic mt-10 emerge">The Silent Network of Progress</p>
         </div>
-        <button onclick="window.location.href='globalintelligence.html'"
-    class="relative px-6 py-2 rounded-full font-mono text-sm font-bold
-           text-accent border border-accent
-           bg-transparent overflow-hidden
-           transition-all duration-300
-           hover:bg-accent hover:text-dark
-           hover:shadow-[0_0_15px_rgba(0,255,204,0.6)]
-           group">
-
-    <span class="relative z-10">
-        GLOBAL INTELLIGENCE
-    </span>
-
-    <!-- Glow effect layer -->
-    <span class="absolute inset-0 bg-accent opacity-0 group-hover:opacity-20 transition-all duration-300"></span>
-</button>
+        <button onclick="window.location.href='globalintelligence.html'" class="relative px-6 py-2 rounded-full font-mono text-sm font-bold text-accent border border-accent bg-transparent overflow-hidden transition-all duration-300 hover:bg-accent hover:text-dark hover:shadow-[0_0_15px_rgba(0,255,204,0.6)] group mt-10">
+            <span class="relative z-10 text-blue-500 group-hover:text-white">GLOBAL INTELLIGENCE</span>
+            <span class="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-20 transition-all duration-300"></span>
+        </button>
     </header>
 
     <section id="visions" class="bg-transparent">
         <div class="max-w-7xl mx-auto">
             <h2 class="text-7xl font-black italic uppercase mb-24 emerge text-center text-white">Mandates</h2>
-            
             <div class="grid lg:grid-cols-2 gap-16">
                 <div class="flip-card emerge">
                     <div class="flip-card-inner">
@@ -239,18 +238,12 @@
     <section id="code" class="bg-slate-950/40 backdrop-blur-sm">
         <div class="max-w-7xl mx-auto">
             <h2 class="text-7xl font-black italic uppercase mb-20 text-center text-white">The Code</h2>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-8">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-8" id="code-container">
                 <script>
                     const laws = ["Trustworthy", "Loyal", "Helpful", "Friendly", "Courteous", "Kind", "Obedient", "Cheerful", "Thrifty", "Clean"];
                     const codeColors = ['text-[#c29b6e]', 'text-green-500', 'text-red-500', 'text-blue-500', 'text-white', 'text-[#c29b6e]', 'text-green-500', 'text-red-500', 'text-blue-500', 'text-white'];
-                    
                     laws.forEach((law, i) => {
-                        document.write(`
-                            <div class="bg-slate-900/40 backdrop-blur-md p-12 rounded-[3rem] border border-white/10 text-center emerge">
-                                <span class="${codeColors[i]} font-black text-3xl">${(i+1)}</span>
-                                <p class="text-[11px] text-white font-black uppercase mt-6 tracking-widest">${law}</p>
-                            </div>
-                        `);
+                        document.write(`<div class="bg-slate-900/40 backdrop-blur-md p-12 rounded-[3rem] border border-white/10 text-center emerge"><span class="${codeColors[i]} font-black text-3xl">${(i+1)}</span><p class="text-[11px] text-white font-black uppercase mt-6 tracking-widest">${law}</p></div>`);
                     });
                 </script>
             </div>
@@ -266,29 +259,35 @@
 
     <section id="radar" class="bg-slate-950/60 backdrop-blur-md">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-6xl font-black italic uppercase mb-20 emerge text-center text-white">Peace Intelligence Radar</h2>
-            <div id="live-map" class="mb-24 shadow-2xl"></div>
+            <h2 class="text-6xl font-black italic uppercase mb-10 emerge text-center text-white">Intelligence Radar</h2>
+            <div class="flex justify-center gap-4 mb-10 emerge">
+                <button onclick="requestLocation()" class="bg-green-600 hover:bg-white hover:text-green-600 text-white px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-3">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M128,104a24,24,0,1,0,24,24A24,24,0,0,0,128,104Zm104,16H215.53A88.08,88.08,0,0,0,136,40.47V24a8,8,0,0,0-16,0V40.47A88.08,88.08,0,0,0,40.47,120H24a8,8,0,0,0,0,16H40.47A88.08,88.08,0,0,0,120,215.53V232a8,8,0,0,0,16,0V215.53A88.08,88.08,0,0,0,215.53,136H232a8,8,0,0,0,0-16Z"></path></svg>
+                    Locate Me
+                </button>
+            </div>
+            
+            <div class="relative">
+                <div id="live-map" class="mb-24 shadow-2xl"></div>
+                <div id="coord-display" class="map-overlay-coord">GPS: Awaiting Signal...</div>
+            </div>
             
             <div class="grid lg:grid-cols-2 gap-20">
                 <div class="bg-slate-900/40 backdrop-blur-md p-14 rounded-[4rem] border border-white/5 emerge">
                     <h3 class="text-3xl font-black italic text-[#8b5a2b] mb-10 uppercase">Broadcast Intel</h3>
-                    
                     <div class="space-y-6">
                         <div class="flex flex-col">
                             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-2">1. Your Name</label>
                             <input type="text" id="username" placeholder="Enter designation..." class="tactical-input">
                         </div>
-
                         <div class="flex flex-col">
                             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-2">2. Topic</label>
                             <input type="text" id="topic" placeholder="Subject / Sector" class="tactical-input">
                         </div>
-
                         <div class="flex flex-col">
                             <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-2">3. Message Post</label>
-                            <textarea id="intel-message" rows="4" placeholder="Full tactical briefing..." class="tactical-input serif italic text-xl"></textarea>
+                            <textarea id="intel-message" rows="4" placeholder="Full tactical briefing... (Click map to pin custom location)" class="tactical-input serif italic text-xl"></textarea>
                         </div>
-
                         <button onclick="submitIntel()" class="w-full bg-blue-600 py-6 mt-4 rounded-full font-black text-white uppercase text-[11px] tracking-[0.4em] hover:bg-white hover:text-blue-600 transition-all shadow-xl">Transmit to Network</button>
                     </div>
                 </div>
@@ -296,30 +295,24 @@
                 <div id="feed" class="max-h-[700px] overflow-y-auto feed-scroll space-y-8 pr-6">
                     <div class="bg-blue-900/20 backdrop-blur-md p-10 rounded-[2.5rem] border border-blue-500/30">
                         <p class="text-blue-400 font-black text-xs uppercase mb-1">Network Status</p>
-                        <p class="text-[10px] text-slate-400 mb-3 tracking-widest">ENCRYPTED // 2026</p>
-                        <p class="text-xl italic serif text-slate-200">"WISPERNET terminal ready. Field data will be geolocated and time-verified."</p>
+                        <p class="text-[10px] text-slate-400 mb-3 tracking-widest">ENCRYPTED // SCOUT_GPS_INIT</p>
+                        <p class="text-xl italic serif text-slate-200">"WISPERNET terminal ready. Tap 'Locate Me' to broadcast live coordinates."</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- SPONSORSHIP FOOTER AREA -->
     <footer class="py-32 bg-slate-950/90 border-t border-white/10">
         <div class="max-w-7xl mx-auto px-10 flex flex-col items-center">
             <div class="flex flex-col md:flex-row items-center gap-12 mb-16 emerge">
-               <img src="https://static.wixstatic.com/media/d78d02_342608c73a1b4f1eb67ee53c9802b598~mv2.jpg" 
-     alt="Kisii University Logo" 
-     class="drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]"
-     width="300" 
-     height="300">
+                <img src="https://static.wixstatic.com/media/d78d02_342608c73a1b4f1eb67ee53c9802b598~mv2.jpg" alt="Kisii University Logo" class="drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" width="300" height="300">
                 <div class="text-center md:text-left">
                     <p class="text-blue-500 font-black tracking-[0.5em] uppercase text-xs mb-4">Official Proprietor & Sponsor</p>
                     <h2 class="text-4xl md:text-6xl font-black uppercase italic leading-none mb-6">Kisii University<br>Flamingo Rover Scouts</h2>
                     <p class="serif italic text-slate-400 text-xl max-w-xl">"Service is the core of our intelligence. Empowering youth to lead through local action and global vision."</p>
                 </div>
             </div>
-            
             <div class="h-[1px] w-full bg-white/5 mb-10"></div>
             <p class="text-[10px] text-white/30 font-black uppercase tracking-[1.5em] text-center">WISPERNET Tactical Archive 2026 &copy; Flamingo Rover Scouts</p>
         </div>
@@ -347,50 +340,64 @@
         ];
 
         const grid = document.getElementById('sdg-grid');
-        sdgData.forEach(s => {
-            grid.innerHTML += `
-                <div class="sdg-card emerge" style="border-left-color: ${s.color}">
-                    <span class="text-xs font-black tracking-widest uppercase" style="color: ${s.color}">Goal ${s.id}</span>
-                    <h4 class="text-5xl text-white font-black mt-10 mb-8 uppercase leading-none">${s.title}</h4>
-                    <p class="text-2xl text-slate-300 serif italic leading-relaxed">${s.desc}</p>
-                </div>
-            `;
-        });
+        sdgData.forEach(s => { grid.innerHTML += `<div class="sdg-card emerge" style="border-left-color: ${s.color}"><span class="text-xs font-black tracking-widest uppercase" style="color: ${s.color}">Goal ${s.id}</span><h4 class="text-5xl text-white font-black mt-10 mb-8 uppercase leading-none">${s.title}</h4><p class="text-2xl text-slate-300 serif italic leading-relaxed">${s.desc}</p></div>`; });
 
-        var map = L.map('live-map', { zoomControl: false }).setView([-0.678, 34.773], 13);
+        // Tactical Map Implementation
+        var map = L.map('live-map', { zoomControl: false, scrollWheelZoom: true }).setView([-0.678, 34.773], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
+        let selectedLatLng = null;
+        let tempMarker = null;
+        let userMarker = null;
+
+        // Function to explicitly request and show location
+        window.requestLocation = function() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    selectedLatLng = { lat, lng };
+                    
+                    map.setView([lat, lng], 16);
+                    
+                    if (userMarker) map.removeLayer(userMarker);
+                    
+                    const pulseIcon = L.divIcon({ className: 'scout-pulse', iconSize: [20, 20], iconAnchor: [10, 10] });
+                    userMarker = L.marker([lat, lng], {icon: pulseIcon}).addTo(map);
+                    userMarker.bindPopup("<b style='color:black;'>Your Intelligence Point</b><br><span style='color:black;'>Coordinates Verified.</span>").openPopup();
+                    
+                    document.getElementById('coord-display').innerText = `LAT: ${lat.toFixed(6)} | LNG: ${lng.toFixed(6)}`;
+                }, function(error) {
+                    alert("Scout Error: Location access denied. Please enable GPS.");
+                });
+            } else {
+                alert("Scout Error: Device does not support GPS.");
+            }
+        };
+
+        map.on('click', (e) => {
+            selectedLatLng = e.latlng;
+            if (tempMarker) map.removeLayer(tempMarker);
+            tempMarker = L.marker(e.latlng).addTo(map).bindPopup("<b style='color:black;'>Target Lock</b>").openPopup();
+            document.getElementById('coord-display').innerText = `PIN: ${e.latlng.lat.toFixed(6)} | ${e.latlng.lng.toFixed(6)}`;
+        });
+
         function submitIntel() {
-            const name = document.getElementById('username').value || "Unknown Scout";
-            const topic = document.getElementById('topic').value || "General Intelligence";
+            const name = document.getElementById('username').value || "Scout_Anon";
+            const topic = document.getElementById('topic').value || "Peace_Intel";
             const msg = document.getElementById('intel-message').value;
-            
             if(!msg) return;
             
-            const now = new Date();
-            const timeStamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateStamp = now.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
-            const mapPos = map.getCenter();
+            const pos = selectedLatLng || map.getCenter();
+            const time = new Date().toLocaleTimeString();
 
-            const marker = L.circleMarker(mapPos, { radius: 10, color: '#2563eb', fillOpacity: 0.6 }).addTo(map);
-            marker.bindPopup(`<b>${topic}</b><br>${name}: ${msg}`).openPopup();
+            L.circleMarker(pos, { radius: 12, color: '#16a34a', weight: 4, fillOpacity: 0.8 }).addTo(map)
+             .bindPopup(`<b style="color:black;">${topic}</b><br><span style="color:black;">${name}: ${msg}</span>`).openPopup();
 
             const feed = document.getElementById('feed');
             const item = document.createElement('div');
-            item.className = "bg-slate-900/60 backdrop-blur-sm p-10 rounded-[2.5rem] border border-white/10 transition-all";
-            item.innerHTML = `
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <p class="text-[#c29b6e] font-black text-xs uppercase mb-1">${topic}</p>
-                        <p class="text-white font-black text-lg uppercase tracking-tight">${name}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[10px] text-white/50 font-black uppercase">${timeStamp} // ${dateStamp}</p>
-                        <p class="text-[9px] text-blue-500 font-bold tracking-widest mt-1">LAT: ${mapPos.lat.toFixed(2)}</p>
-                    </div>
-                </div>
-                <p class="text-xl italic serif text-slate-200 border-t border-white/10 pt-6 leading-relaxed">"${msg}"</p>
-            `;
+            item.className = "bg-slate-900/60 p-10 rounded-[2.5rem] border border-white/10 emerge-active";
+            item.innerHTML = `<div class="flex justify-between items-start mb-6"><div><p class="text-[#c29b6e] font-black text-xs uppercase mb-1">${topic}</p><p class="text-white font-black text-lg uppercase">${name}</p></div><div class="text-right"><p class="text-[10px] text-white/50 uppercase">${time}</p><p class="text-[9px] text-green-500 font-bold mt-1">LAT: ${pos.lat.toFixed(4)} LNG: ${pos.lng.toFixed(4)}</p></div></div><p class="text-xl italic serif text-slate-200 pt-6 border-t border-white/5">"${msg}"</p>`;
             feed.prepend(item);
             
             document.getElementById('topic').value = "";
